@@ -237,7 +237,11 @@
 
             // Pass the AVPlayerItem to a new player
             avPlayer = [[AVPlayer alloc] initWithPlayerItem:playerItem];
-
+            
+            //double duration = 0;
+            //duration = CMTimeGetSeconds(avPlayer.currentItem.asset.duration);
+            //double k = 1;
+            //k=2;
             //avPlayer = [[AVPlayer alloc] initWithURL:resourceUrl];
         }
 
@@ -377,6 +381,7 @@
                     }
 
                     [audioFile.player play];
+                    
                     position = round(audioFile.player.duration * 1000) / 1000;
                 }
 
@@ -598,10 +603,10 @@
     if ((audioFile != nil) && (audioFile.player != nil) && [audioFile.player isPlaying]) {
         position = round(audioFile.player.currentTime * 1000) / 1000;
     }
-    if (avPlayer) {
+    /*if (avPlayer) {
        CMTime time = [avPlayer currentTime];
        position = CMTimeGetSeconds(time);
-    }
+    }*/
 
     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDouble:position];
     
