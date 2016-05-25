@@ -238,6 +238,20 @@
             // Pass the AVPlayerItem to a new player
             avPlayer = [[AVPlayer alloc] initWithPlayerItem:playerItem];
             
+            //We want to load the duration previously
+            BOOL bError = false;
+            if ((audioFile != nil) && (audioFile.resourceURL != nil)) {
+                if (audioFile.player == nil) {
+                    bError = [self prepareToPlay:audioFile withId:mediaId];
+                }
+                if (!bError) {
+                    double position = round(audioFile.player.duration * 1000) / 1000;
+                    
+                    NSString* jsString = [NSString stringWithFormat:@"%@(\"%@\",%d,%.3f);", @"cordova.require('cordova-plugin-media.Media').onStatus", mediaId, MEDIA_DURATION, position];
+                    [self.commandDelegate evalJs:jsString];
+                }
+            }
+            
             //double duration = 0;
             //duration = CMTimeGetSeconds(avPlayer.currentItem.asset.duration);
             //double k = 1;
