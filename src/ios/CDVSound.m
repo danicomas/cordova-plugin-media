@@ -375,16 +375,18 @@
 
                 } else {
 
+                    NSTimeInterval time1 = audioFile.player.currentTime;
+                    
                     NSNumber* loopOption = [options objectForKey:@"numberOfLoops"];
                     NSInteger numberOfLoops = 0;
                     if (loopOption != nil) {
                         numberOfLoops = [loopOption intValue] - 1;
                     }
                     audioFile.player.numberOfLoops = numberOfLoops;
-                    if (audioFile.player.isPlaying) {
+                    /*if (audioFile.player.isPlaying) {
                         [audioFile.player stop];
                         audioFile.player.currentTime = 0;
-                    }
+                    }*/
                     if (audioFile.volume != nil) {
                         audioFile.player.volume = [audioFile.volume floatValue];
                     }
@@ -393,8 +395,12 @@
                     if (audioFile.rate != nil) {
                         audioFile.player.rate = [audioFile.rate floatValue];
                     }
+                     time1 = audioFile.player.currentTime;
 
+                    audioFile.player.currentTime = time1;
                     [audioFile.player play];
+                    
+                    time1 = audioFile.player.currentTime;
                     
                     position = round(audioFile.player.duration * 1000) / 1000;
                 }
