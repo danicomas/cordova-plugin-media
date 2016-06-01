@@ -28,6 +28,12 @@
 @implementation CDVSound
 
 @synthesize soundCache, avSession, currMediaId;
+@synthesize audioPlayerDict = _audioPlayerDict;
+
+- (NSMutableDictionary *)audioPlayerDict {
+    if (!_audioPlayerDict) _audioPlayerDict = [[NSMutableDictionary alloc] init];
+    return _audioPlayerDict;
+}
 
 // Maps a url for a resource path for recording
 - (NSURL*)urlForRecording:(NSString*)resourcePath
@@ -226,8 +232,9 @@
         NSURL* resourceUrl = [[NSURL alloc] initWithString:resourcePath];
 
         if (![resourceUrl isFileURL] && ![resourcePath hasPrefix:CDVFILE_PREFIX]) {
+            
             // First create an AVPlayerItem
-            AVPlayerItem* playerItem = [AVPlayerItem playerItemWithURL:resourceUrl];
+            /*AVPlayerItem* playerItem = [AVPlayerItem playerItemWithURL:resourceUrl];
 
             // Subscribe to the AVPlayerItem's DidPlayToEndTime notification.
             [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(itemDidFinishPlaying:) name:AVPlayerItemDidPlayToEndTimeNotification object:playerItem];
@@ -236,7 +243,8 @@
             [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(itemStalledPlaying:) name:AVPlayerItemPlaybackStalledNotification object:playerItem];
 
             // Pass the AVPlayerItem to a new player
-            avPlayer = [[AVPlayer alloc] initWithPlayerItem:playerItem];
+            avPlayer = [[AVPlayer alloc] initWithPlayerItem:playerItem];*/
+            
             
             //We want to load the duration previously
             BOOL bError = false;
@@ -245,7 +253,7 @@
                     bError = [self prepareToPlay:audioFile withId:mediaId];
                 }
                 if (!bError) {
-                    double position = round(audioFile.player.duration * 1000) / 1000;
+                    double position = [self getDuration:mediaId];
                     
                     NSString* jsString = [NSString stringWithFormat:@"%@(\"%@\",%d,%.3f);", @"cordova.require('cordova-plugin-media.Media').onStatus", mediaId, MEDIA_DURATION, position];
                     [self.commandDelegate evalJs:jsString];
@@ -316,6 +324,13 @@
     // don't care for any callbacks
 }
 
+- (double) getDuration:(NSString*)mediaId
+{
+    NSNumber *num = self.audioPlayerDict[mediaId];
+    double position = [num integerValue];
+    return position;
+}
+
 - (void)startPlayingAudio:(CDVInvokedUrlCommand*)command
 {
     [self.commandDelegate runInBackground:^{
@@ -361,8 +376,7 @@
                 NSLog(@"Playing audio sample '%@'", audioFile.resourcePath);
                 double position = 0;
                 if (avPlayer.currentItem && avPlayer.currentItem.asset) {
-                    CMTime time = avPlayer.currentItem.asset.duration;
-                    position = CMTimeGetSeconds(time);
+                    position = [self getDuration:mediaId];
 
                     if (audioFile.rate != nil){
                         float customRate = [audioFile.rate floatValue];
@@ -402,7 +416,7 @@
                     
                     time1 = audioFile.player.currentTime;
                     
-                    position = round(audioFile.player.duration * 1000) / 1000;
+                    position = [self getDuration:mediaId];
                 }
 
                 jsString = [NSString stringWithFormat:@"%@(\"%@\",%d,%.3f);\n%@(\"%@\",%d,%d);", @"cordova.require('cordova-plugin-media.Media').onStatus", mediaId, MEDIA_DURATION, position, @"cordova.require('cordova-plugin-media.Media').onStatus", mediaId, MEDIA_STATE, MEDIA_RUNNING];
@@ -443,6 +457,12 @@
     NSURL* resourceURL = audioFile.resourceURL;
 
     if ([resourceURL isFileURL]) {
+        AVURLAsset *asset =  [[AVURLAsset alloc] initWithURL:resourceURL options:nil];
+        Float64 duration = CMTimeGetSeconds(asset.duration);
+        double position = round((duration) * 1000) / 1000;
+        NSNumber *tempNumber = [[NSNumber alloc] initWithDouble:position];
+        self.audioPlayerDict[mediaId] = tempNumber;
+        
         audioFile.player = [[CDVAudioPlayer alloc] initWithContentsOfURL:resourceURL error:&playerError];
     } else {
         /*      
@@ -551,8 +571,9 @@
     NSString* jsString;
 
     if ((audioFile != nil) && (audioFile.player != nil)) {
-
-        if (posInSeconds >= audioFile.player.duration) {
+        double duration = [self getDuration:mediaId];
+        
+        if (posInSeconds >= duration) {
             // The seek is past the end of file.  Stop media and reset to beginning instead of seeking past the end.
             [audioFile.player stop];
             audioFile.player.currentTime = 0;
